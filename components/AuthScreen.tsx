@@ -30,21 +30,19 @@ const AuthScreen = () => {
       return;
     }
 
-    if (mode === "signup" && (!firstName || !lastName)) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
-
     setLoading(true);
 
     try {
       if (mode === "signin") {
-        await signIn(email, password);
+        const { error } = await signIn(email, password);
+        if (error) throw error;
       } else {
-        await signUp(email, password, firstName, lastName);
+        const { error } = await signUp(email, password, firstName, lastName);
+        if (error) throw error;
         Alert.alert("Success", "Check your email for the confirmation link!");
       }
     } catch (error: any) {
+      Alert.alert("Error", error.message);
     } finally {
       setLoading(false);
     }
@@ -57,7 +55,8 @@ const AuthScreen = () => {
     }
 
     try {
-      await resetPassword(email);
+      const { error } = await resetPassword(email);
+      if (error) throw error;
       Alert.alert("Success", "Check your email for the reset link!");
     } catch (error: any) {
       Alert.alert("Error", error.message);
@@ -70,7 +69,7 @@ const AuthScreen = () => {
       className="flex-1 justify-center px-6 bg-gray-50"
     >
       <SafeAreaView>
-        <View className="p-8 rounded-lg">
+        <View className="p-8 b  rounded-lg ">
           <Text className="mb-8 text-3xl font-bold text-center text-gray-800">
             {mode === "signin" ? "Welcome" : "Create Account"}
           </Text>
@@ -118,7 +117,7 @@ const AuthScreen = () => {
                 </Text>
                 <TextInput
                   className="px-4 py-3 text-gray-800 rounded-lg border border-gray-300"
-                  placeholder="Last Name"
+                  placeholder="First Name"
                   value={lastName}
                   onChangeText={setLastName}
                   autoCapitalize="none"

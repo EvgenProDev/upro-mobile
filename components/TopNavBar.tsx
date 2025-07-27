@@ -6,13 +6,8 @@ import { Animated, Text, TouchableOpacity, View } from "react-native";
 const TopNavbar = () => {
   const [isFriendMenuVisible, setIsFriendMenuVisible] = useState(false);
   const slideAnimation = useRef(new Animated.Value(0)).current; // Animation state
-  const {
-    signOut,
-    currentProfile,
-    setCurrentProfile,
-    profiles,
-    switchProfile,
-  } = useAuth();
+  const { currentProfile, setCurrentProfile, profiles, switchProfile } =
+    useAuth();
 
   const toggleFriendMenu = () => {
     Animated.timing(slideAnimation, {
@@ -68,14 +63,6 @@ const TopNavbar = () => {
           className="bg-white p-2 rounded-full"
         >
           <Text className="text-green-500 font-semibold">Add new profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            signOut();
-          }}
-          className="bg-white p-2 rounded-full mt-2"
-        >
-          <Text className="text-red-500 font-semibold">Logout</Text>
         </TouchableOpacity>
       </Animated.View>
       <TouchableOpacity

@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Platform } from "react-native";
 
 import AuthScreen from "@/components/AuthScreen";
@@ -13,34 +13,70 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 type IconName = React.ComponentProps<typeof IconSymbol>["name"];
 
-const navigations: {
+interface NavItem {
   name: string;
   title: string;
   icon: IconName;
-}[] = [
-  { name: "index", title: "Home", icon: "house.fill" },
-  { name: "trainings", title: "Trainings", icon: "figure.walk" },
-  { name: "multiPlayer", title: "Multiplayer", icon: "person.3.fill" },
-  { name: "lockerRoom", title: "Locker Room", icon: "lock.fill" },
-  { name: "shop", title: "Shop", icon: "cart.fill" },
+}
+
+const navigations: NavItem[] = [
+  {
+    name: "index",
+    title: "Home",
+    icon: "house.fill",
+  },
+  // {
+  //   name: "explore",
+  //   title: "Explore",
+  //   icon: "paperplane.fill",
+  // },
+  {
+    name: "trainings",
+    title: "Trainings",
+    icon: "figure.walk",
+  },
+  {
+    name: "multiPlayer",
+    title: "Multiplayer",
+    icon: "person.3.fill",
+  },
+  {
+    name: "lockerRoom",
+    title: "Locker Room",
+    icon: "lock.fill",
+  },
+  {
+    name: "shop",
+    title: "Shop",
+    icon: "cart.fill",
+  },
 ];
 
 export default function TabLayout() {
-  const { user, profiles, currentProfile } = useAuth();
+  const { user } = useAuth();
   const colorScheme = useColorScheme();
+  const { profiles, currentProfile, setCurrentProfile } = useAuth();
+  useEffect(() => {
+    // setCurrentProfile(null);
+  }, [profiles, currentProfile]);
 
-  if (!user) return <AuthScreen />;
-  if (profiles.length > 0 && currentProfile == null) return <Profiles />;
-
-  return (
+  if (!user) {
+    return <AuthScreen />;
+  }
+  return profiles.length > 0 && currentProfile == null ? (
+    <Profiles />
+  ) : (
     <Tabs
       screenOptions={{
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         tabBarStyle: Platform.select({
-          ios: { position: "absolute" },
+          ios: {
+            // Use a transparent background on iOS to show the blur effect
+            position: "absolute",
+          },
           default: {},
         }),
       }}

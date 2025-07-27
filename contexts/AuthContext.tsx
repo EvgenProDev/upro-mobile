@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
 import {
   createContext,
@@ -6,8 +7,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Alert } from "react-native";
-import { supabase } from "../lib/supabase";
 
 export type Account = {
   id: string;
@@ -24,8 +23,8 @@ export type Profile = {
   gender: string;
   age_group: string;
   weight: number;
-  height: number;
   upro_gold: number;
+  height: number;
   dominant_foot: string;
   playing_position: string;
   created_at: string;
@@ -64,88 +63,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    try {
-      const getSession = async () => {
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        setLoading(false);
-      };
-      getSession();
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    };
+    getSession();
 
-      const { data: listener } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setSession(session);
-          setUser(session?.user ?? null);
-        }
-      );
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
 
-      return () => {
-        listener?.subscription?.unsubscribe();
-      };
-    } catch (error) {
-      console.error("Error in AuthProvider useEffect:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
-    }
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const fetchAccount = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("accounts")
-      .select("*")
-      .eq("auth_user_id", user.id)
-      .single();
-
-    if (error) {
-      console.error("Error fetching account:", error.message);
-      return;
-    }
-
-    setAccount(data);
-  };
   useEffect(() => {
-    if (user) {
-      try {
-        fetchAccount();
-      } catch (error) {
+    const fetchAccount = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (error) {
         console.error("Error fetching account:", error);
-        Alert.alert("Error", "Failed to fetch account information.");
+        return;
       }
-    }
+      console.log("Fetched account:", data);
+      setAccount(data);
+    };
+
+    fetchAccount();
   }, [user]);
+
   useEffect(() => {
-    try {
-      fetchProfiles();
-    } catch (error) {
-      console.error("Error fetching profiles:", error);
-      Alert.alert("Error", "Failed to fetch profiles.");
-    }
-  }, [account]);
-  const fetchProfiles = async () => {
-    if (account) {
+    const fetchProfiles = async () => {
+      if (!account) return;
+
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("account_id", account.id);
-
+      console.log("Fetching profiles for account:---------------------");
       if (error) {
-        console.error("Error fetching profiles:", error.message);
+        console.error("Error fetching profiles:", error);
         return;
       }
 
-      setProfiles(data ?? []);
-      if (data?.[0]) {
-        switchProfile(data[0].id); // Automatically set first profile
-      }
-    }
-  };
+      setProfiles(data || []);
+      //   setCurrentProfile(data?.[0] || null); // Set the first profile as current by default
+      switchProfile(data?.[0]?.id || ""); // Ensure current profile is set if available
+    };
 
+    fetchProfiles();
+  }, [account]);
+
+  useEffect(() => {
+    if (profiles.length > 0) {
+      setCurrentProfile(profiles[0]); // Set the first profile as current by default
+    }
+  }, [profiles]);
   const switchProfile = (profileId: string) => {
-    console.log(profiles);
     const profile = profiles.find((p) => p.id === profileId);
     if (profile) {
       setCurrentProfile(profile);
+      console.log("Switched to profile:", profile);
     } else {
       console.warn(`Profile with ID ${profileId} not found`);
     }
@@ -161,60 +151,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
+        data: { firstName, lastName },
       },
     });
-
-    if (error) {
-      console.error("Supabase error:", error.message);
-      Alert.alert("Something went wrong", error.message);
-      return;
-    }
-
-    setSession(data.session ?? null);
-    setUser(data.user ?? null);
+    if (error) throw error;
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
-    if (error) {
-      console.error("Supabase error:", error.message);
-      Alert.alert("Something went wrong", error.message);
-      return;
-    }
-
-    setSession(data.session ?? null);
-    setUser(data.user ?? null);
+    if (error) throw error;
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Supabase error:", error.message);
-      Alert.alert("Something went wrong", error.message);
-      return;
-    }
-    setSession(null);
-    setUser(null);
-    setAccount(null);
-    setProfiles([]);
-    setCurrentProfile(null);
+    if (error) throw error;
   };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) {
-      console.error("Supabase error:", error.message);
-      Alert.alert("Something went wrong", error.message);
-      return;
-    }
+    if (error) throw error;
   };
 
   const value: AuthContextType = {
@@ -241,12 +199,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
-
 export const useCurrentProfile = () => {
   const { currentProfile } = useAuth();
   return currentProfile;
